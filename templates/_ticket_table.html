@@ -1,0 +1,27 @@
+<div class="tablewrap color-ticket-table">
+<table>
+<thead><tr><th>Ticket</th><th>Type</th><th>Subject</th><th>Requester</th><th>Assignee</th><th>Priority</th><th>Status</th><th>Created</th>{% if current_user.role.name in ("IT_TEAM_LEADER","IT_MANAGER") %}<th>Action</th>{% endif %}</tr></thead>
+<tbody>
+{% for t in tickets %}
+{% set overdue = is_ticket_overdue(t) %}
+<tr class="ticket-row {% if overdue %}row-overdue{% endif %}">
+<td><a href="{{url_for('ticket',ticket_id=t.id)}}">{{t.ticket_no}}</a></td>
+<td>{{request_type_labels.get(t.request_type,t.request_type)}}</td>
+<td class="subject-cell">{{t.subject}}</td>
+<td>{{t.requester.full_name if t.requester else "Deleted User"}}</td>
+<td>{{t.technician.full_name if t.technician else "Unassigned"}}</td>
+<td><span class="priority p-{{t.priority|lower}}">{{t.priority}}</span></td>
+<td><span class="status status-{{t.status|lower}}">{{t.status.replace("_"," ").title()}}</span>{% if overdue %}<span class="ticket-overdue-badge">OVERDUE</span>{% endif %}</td>
+<td>{{t.created_at|localtime}}</td>
+{% if current_user.role.name in ("IT_TEAM_LEADER","IT_MANAGER") %}
+<td>
+{% if current_user.role.name=="IT_TEAM_LEADER" and t.request_type=="IT_SUPPORT" %}
+<form method="post" action="{{url_for('assign',ticket_id=t.id)}}" class="inline-form"><input type="hidden" name="_csrf" value="{{csrf_token()}}"><select name="assignee_id" required><option value="">Assign to...</option>{% for x in assignment_targets %}<option value="{{x.id}}" {% if t.assigned_to_id==x.id %}selected{% endif %}>{{x.full_name}} — {{x.role.display_name}}</option>{% endfor %}</select><button class="primary">Assign</button></form>
+{% elif current_user.role.name=="IT_MANAGER" and t.requester_id==current_user.id %}
+<form method="post" action="{{url_for('assign',ticket_id=t.id)}}" class="inline-form"><input type="hidden" name="_csrf" value="{{csrf_token()}}"><select name="assignee_id" required><option value="">Assign to...</option>{% for x in assignment_targets %}<option value="{{x.id}}" {% if t.assigned_to_id==x.id %}selected{% endif %}>{{x.full_name}} — {{x.role.display_name}}</option>{% endfor %}</select><button class="primary">Assign</button></form>
+{% else %}—{% endif %}
+</td>
+{% endif %}
+</tr>
+{% else %}<tr><td colspan="9" class="empty">No requests found.</td></tr>{% endfor %}
+</tbody></table></div>

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block auth %}
+<section class="login-card">
+  <div class="login-card-head">
+    <span class="login-kicker">SECURE ACCESS</span>
+    <h1>Welcome back</h1>
+    <p>Sign in with your MKDSS helpdesk account to continue.</p>
+  </div>
+  <form method="post" class="form login-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label><span>Username</span><input name="username" autocomplete="username" required autofocus placeholder="Enter your username"></label>
+    <label><span>Password</span><input type="password" name="password" autocomplete="current-password" required placeholder="Enter your password"></label>
+    <button class="primary login-submit" type="submit"><span>Sign in</span><span>→</span></button>
+  </form>
+  <div class="login-security"><span class="lock-mark">✓</span><span>Authorized internal users only</span></div>
+</section>
+{% endblock %}

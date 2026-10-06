@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="completed-report-page">
+  <header class="cr-hero">
+    <div><div class="cr-kicker">MANAGEMENT REPORTING · CLOSED WORK</div><h1>Completed Requests</h1><p>Requests that passed completion approval and requester acceptance and are now closed.</p></div>
+    <div class="cr-summary"><div class="cr-summary-card"><span>COMPLETED & ACCEPTED</span><strong>{{ total }}</strong></div></div>
+  </header>
+  <form method="get" class="cr-filter">
+    <div class="cr-field"><label>FROM DATE</label><input type="date" name="from" value="{{ start }}"></div>
+    <div class="cr-field"><label>TO DATE</label><input type="date" name="to" value="{{ end }}"></div>
+    <div class="cr-field"><label>SEARCH</label><input type="search" name="q" value="{{ search }}" placeholder="Ticket number or subject"></div>
+    <div class="cr-actions"><button class="cr-btn primary" type="submit">Apply Filters</button><a class="cr-btn" href="{{ url_for('completed_report_csv', **{'from':start,'to':end,'q':search}) }}">Export CSV</a></div>
+  </form>
+  <section class="cr-table-card">
+    <div class="cr-table-head"><h2>Closed request register</h2><p>Each record includes completion approval, requester acceptance, and final closure time.</p></div>
+    <div class="cr-table-wrap"><table class="cr-table"><thead><tr><th>Request</th><th>Requester</th><th>Assigned To</th><th>Priority</th><th>Approved By</th><th>Accepted By</th><th>Closed</th></tr></thead><tbody>
+      {% for t in rows %}<tr><td><a class="cr-ticket-no" href="{{ url_for('ticket',ticket_id=t.id) }}">{{ t.ticket_no }}</a><span class="cr-subject">{{ t.subject }}</span></td><td><span class="cr-person">{{ t.requester.full_name if t.requester else 'Deleted User' }}</span></td><td><span class="cr-person">{{ t.technician.full_name if t.technician else '—' }}</span></td><td><span class="cr-priority {{ t.priority|lower }}">{{ t.priority }}</span></td><td><span class="cr-person">{{ t.completion_approved_by.full_name if t.completion_approved_by else '—' }}</span><span class="cr-time">{{ t.completion_approved_at|localtime }}</span></td><td><span class="cr-person">{{ t.requester_confirmed_by.full_name if t.requester_confirmed_by else '—' }}</span><span class="cr-time">{{ t.requester_confirmed_at|localtime }}</span></td><td><span class="cr-time">{{ t.closed_at|localtime }}</span></td></tr>{% else %}<tr><td colspan="7" class="cr-empty">No completed requests match the selected filters.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+</div>
+{% endblock %}

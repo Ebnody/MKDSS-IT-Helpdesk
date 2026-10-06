@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><div class="eyebrow">SYSTEM CONFIGURATION</div><h1>Request categories</h1><p class="muted">Maintain active categories for each support function.</p></div></div>
+<section class="panel"><div class="panel-title"><h2>Add category</h2></div>
+<form method="post" class="form-grid" style="grid-template-columns:2fr 1fr auto;align-items:end">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<label><span>Category name <b class="required">*</b></span><input name="name" required maxlength="120"></label>
+<label><span>Request type <b class="required">*</b></span><select name="request_type">{% for rt,label in request_type_labels.items() %}<option value="{{rt}}">{{label}}</option>{% endfor %}</select></label>
+<button class="primary" type="submit">Add category</button>
+</form></section>
+<section class="panel"><div class="panel-title"><h2>Categories</h2></div>
+<div class="tablewrap"><table><thead><tr><th>Category</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+{% for c in categories %}<tr><td><strong>{{c.name}}</strong></td><td>{{request_type_labels.get(c.request_type,c.request_type)}}</td><td><span class="status {{ 'status-resolved' if c.is_active else 'status-closed' }}">{{'Active' if c.is_active else 'Inactive'}}</span></td><td><div class="actions"><a class="action-btn" href="{{url_for('edit_category',category_id=c.id)}}">Edit</a><form method="post" action="{{url_for('toggle_category',category_id=c.id)}}"><input type="hidden" name="_csrf" value="{{csrf_token()}}"><button class="action-btn">{{'Deactivate' if c.is_active else 'Activate'}}</button></form>{% if not c.tickets %}<form method="post" action="{{url_for('delete_category',category_id=c.id)}}"><input type="hidden" name="_csrf" value="{{csrf_token()}}"><button class="action-btn">Delete</button></form>{% endif %}</div></td></tr>
+{% else %}<tr><td colspan="4" class="empty">No categories found.</td></tr>{% endfor %}
+</tbody></table></div></section>{% endblock %}

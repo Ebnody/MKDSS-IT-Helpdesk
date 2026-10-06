@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="head"><div><h1>Edit category</h1><p class="muted">Update the category name and the support function it belongs to.</p></div><a class="secondary btn" href="{{ url_for('categories') }}">Back to categories</a></div>
+<section class="panel formpanel">
+<form method="post" class="form">
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<label>Category name<input name="name" value="{{ category.name }}" maxlength="120" required></label>
+<label>Request type<select name="request_type" required>{% for rt,label in request_type_labels.items() %}<option value="{{ rt }}" {% if category.request_type==rt %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+<div class="actions"><button class="primary" type="submit">Save changes</button><a class="secondary btn" href="{{ url_for('categories') }}">Cancel</a></div>
+</form>
+</section>
+{% endblock %}

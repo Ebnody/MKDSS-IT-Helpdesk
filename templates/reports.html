@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head"><div><div class="eyebrow">REPORTING</div><h1>{% if current_user.role.name=='SYSTEM_ADMINISTRATOR' %}System Administration Reports{% elif current_user.role.name=='IT_MANAGER' %}IT Team Support Report{% elif current_user.role.name=='IT_TEAM_LEADER' %}Support Report{% else %}My Support Report{% endif %}</h1><p class="muted">Read-only view of support requests. Assignment is managed from Requests.</p></div>
+{% if current_user.role.name in ('IT_MANAGER','IT_TEAM_LEADER','IT_TECHNICIAN') %}<a class="secondary btn" href="{{ url_for('new_daily_report') }}">Prepare Daily Work Report</a>{% endif %}</div>
+<section class="stats dashboard-stats">{% for s in statuses %}<div class="stat-card stat-{{ s|lower }}"><div class="stat-icon">{% if s=='NEW' %}＋{% elif s=='ASSIGNED' %}↗{% elif s=='IN_PROGRESS' %}◷{% elif s=='PENDING' %}⌛{% elif s=='RESOLVED' %}✓{% else %}×{% endif %}</div><div><span>{{ s.replace('_',' ').title() }}</span><strong>{{ counts[s] }}</strong></div></div>{% endfor %}</section>
+<section class="panel"><div class="panel-title"><div><h2>Report filters</h2><p class="muted">Filter by status or search by ticket number and subject.</p></div><div class="actions"><a class="secondary btn" href="{{ url_for('report_csv', status=selected_status, q=search) }}">Export CSV</a><a class="secondary btn" href="{{ url_for('report_pdf', status=selected_status, q=search) }}">Export PDF</a></div></div>
+<form class="filterbar" method="get"><div class="filter-field"><label>Search</label><input name="q" value="{{ search }}" placeholder="Ticket number or subject"></div><div class="filter-field"><label>Status</label><select name="status"><option value="">All statuses</option>{% for s in statuses %}<option value="{{ s }}" {% if selected_status==s %}selected{% endif %}>{{ s.replace('_',' ').title() }}</option>{% endfor %}</select></div><button class="primary" type="submit">Apply filters</button><a class="secondary btn" href="{{ url_for('reports') }}">Clear</a></form></section>
+<section class="panel"><div class="panel-title"><div><h2>{% if current_user.role.name=='SYSTEM_ADMINISTRATOR' %}System Administration Support{% else %}Support Requests{% endif %}</h2><span class="muted">{{ rows|length }} request{{ '' if rows|length==1 else 's' }}</span></div></div>
+<div class="tablewrap color-ticket-table"><table><thead><tr><th>Ticket</th><th>Type</th><th>Subject</th><th>Requester</th><th>Department</th><th>Assignee</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead><tbody>{% for t in rows %}<tr class="ticket-row" data-status="{{ t.status }}" data-assigned="{{ '1' if t.assigned_to_id else '0' }}" data-created-ts="{{ (t.created_at.timestamp() * 1000)|int }}"><td><a class="ticket-link" href="{{ url_for('ticket',ticket_id=t.id) }}">{{ t.ticket_no }}</a></td><td>{{ request_type_labels.get(t.request_type,t.request_type) }}</td><td class="subject-cell">{{ t.subject }}</td><td>{{ t.requester.full_name if t.requester else 'Deleted User' }}</td><td>{{ t.department.name if t.department else '—' }}</td><td>{{ t.technician.full_name if t.technician else 'Unassigned' }}</td><td><span class="priority p-{{ t.priority|lower }}">{{ t.priority }}</span></td><td><span class="status status-{{ t.status|lower }}">{{ t.status.replace('_',' ').title() }}</span><span class="ticket-age"></span></td><td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>{% else %}<tr><td colspan="9" class="empty">No requests match the selected filters.</td></tr>{% endfor %}</tbody></table></div>
+<script>
+(function () {
+  const table = document.currentScript.previousElementSibling;
+  if (!table) return;
+  const now = Date.now();
+  table.querySelectorAll('tr.ticket-row').forEach(function (row) {
+    const status = row.dataset.status || '';
+    const assigned = row.dataset.assigned === '1';
+    const created = Number(row.dataset.createdTs || 0);
+    const ageHours = created ? (now - created) / 3600000 : 0;
+    let stateClass = 'row-' + status.toLowerCase();
+    let overdue = false;
+    if (status === 'NEW' && !assigned && ageHours > 1) { stateClass = 'row-overdue-assignment'; overdue = true; }
+    else if (status !== 'CLOSED' && ageHours > 24) { stateClass = 'row-overdue-24h'; overdue = true; }
+    row.classList.add(stateClass);
+    const age = row.querySelector('.ticket-age');
+    if (age && overdue) age.textContent = status === 'NEW' && !assigned ? ' • Unassigned > 1h' : ' • 24h+ overdue';
+  });
+})();
+</script>
+</section>
+{% endblock %}

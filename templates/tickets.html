@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% block content %}
+<div class="head"><div><h1>Requests</h1><p class="muted">Track and manage support requests.</p></div><a class="primary btn" href="{{url_for('new_ticket')}}">New request</a></div>
+<section class="panel">
+<form class="filters">
+<input name="q" value="{{request.args.get('q','')}}" placeholder="Search ticket, subject or description">
+<select name="status"><option value="">All statuses</option>{% for s in STATUSES %}<option value="{{s}}" {% if request.args.get('status')==s %}selected{% endif %}>{{s.replace("_"," ").title()}}</option>{% endfor %}</select>
+<select name="priority"><option value="">All priorities</option>{% for x in PRIORITIES %}<option value="{{x}}" {% if request.args.get('priority')==x %}selected{% endif %}>{{x.title()}}</option>{% endfor %}</select>
+<select name="request_type"><option value="">All request types</option>{% for x,l in request_type_labels.items() %}<option value="{{x}}" {% if request.args.get('request_type')==x %}selected{% endif %}>{{l}}</option>{% endfor %}</select>
+<label class="check-inline"><input type="checkbox" name="overdue" value="1" {% if request.args.get('overdue')=='1' %}checked{% endif %}> Overdue only</label>
+<button class="secondary">Filter</button>
+</form>
+{% include "_ticket_table.html" %}
+</section>{% endblock %}

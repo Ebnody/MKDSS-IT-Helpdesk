@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><div class="eyebrow">DAILY REPORT</div><h1>Daily Work Report</h1><p class="muted">Detailed IT work activity record.</p></div><div class="actions"><a class="secondary btn" href="{{url_for('daily_report_csv',report_id=report.id)}}">CSV</a><a class="primary btn" href="{{url_for('daily_report_pdf',report_id=report.id)}}">PDF</a><a class="secondary btn" href="{{url_for('daily_reports')}}">Back to My Reports</a></div></div>
+<section class="twocol"><div class="panel"><div class="panel-title"><h2>Work activity</h2></div>
+<div class="report-section"><h3>Tickets worked on</h3><div class="report-text">{{report.tickets_worked_on or '—'}}</div></div>
+<div class="report-section"><h3>Work summary</h3><div class="report-text">{{report.summary or '—'}}</div></div>
+<div class="report-section"><h3>Challenges / issues</h3><div class="report-text">{{report.challenges or 'None reported.'}}</div></div>
+<div class="report-section"><h3>Actions taken</h3><div class="report-text">{{report.actions or 'None reported.'}}</div></div>
+<div class="report-section"><h3>Pending work</h3><div class="report-text">{{report.pending_work or 'None reported.'}}</div></div>
+<div class="report-section"><h3>Next day plan</h3><div class="report-text">{{report.next_day_plan or 'None reported.'}}</div></div>
+<div class="report-section"><h3>Remarks</h3><div class="report-text">{{report.remarks or 'None reported.'}}</div></div>
+</div><div class="panel"><div class="panel-title"><h2>Report information</h2></div><dl><dt>Report date</dt><dd>{{report.report_date.strftime('%Y-%m-%d') if report.report_date else '—'}}</dd><dt>Prepared by</dt><dd>{{report.user.full_name if report.user else 'Deleted User'}}</dd><dt>Role</dt><dd>{{report.user.role.display_name if report.user and report.user.role else '—'}}</dd><dt>Submitted</dt><dd>{{report.created_at|localtime if report.created_at else '—'}}</dd></dl></div></section>{% endblock %}

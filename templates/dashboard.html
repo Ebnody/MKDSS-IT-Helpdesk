@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="role-dashboard">
+  <header class="rd-head">
+    <div>
+      <div class="rd-eyebrow">MKDSS IT HELP DESK · {{ current_user.role.display_name|upper }}</div>
+      <h1>{{ dashboard_scope_title }}</h1>
+      <p>{{ dashboard_scope_description }}</p>
+    </div>
+    <form class="rd-period-form" method="get" action="{{ url_for('dashboard') }}">
+      <div class="rd-period-title"><span>REPORTING WINDOW</span><strong>Select dashboard period</strong></div>
+      <div class="rd-period-fields">
+        <label>From<input type="date" name="from" value="{{ dashboard_period_from }}" aria-label="Reporting period start"></label>
+        <span class="rd-period-arrow">–</span>
+        <label>To<input type="date" name="to" value="{{ dashboard_period_to }}" aria-label="Reporting period end"></label>
+        <button type="submit">Apply</button>
+      </div>
+    </form>
+  </header>
+
+  {% if dashboard_role == 'EMPLOYEE' %}
+  <section class="rd-kpis">
+    <div class="rd-kpi accent-blue"><span>MY OPEN REQUESTS</span><strong>{{ role_metrics.my_open }}</strong><small>Not yet closed</small></div>
+    <div class="rd-kpi accent-purple"><span>AWAITING MY ACCEPTANCE</span><strong>{{ role_metrics.awaiting_requester }}</strong><small>Completed work to review</small></div>
+    <div class="rd-kpi accent-green"><span>MY COMPLETED</span><strong>{{ role_metrics.my_completed }}</strong><small>Accepted and closed</small></div>
+    <div class="rd-kpi accent-red"><span>MY OVERDUE</span><strong>{{ role_metrics.overdue }}</strong><small>Needs attention</small></div>
+  </section>
+  <section class="rd-grid two">
+    <article class="rd-card"><div class="rd-card-head"><div><h2>My Requests</h2><p>Requests submitted by your account</p></div><a href="{{ url_for('tickets') }}">View all</a></div>
+      {% for t in tickets[:8] %}<a class="rd-ticket" href="{{ url_for('ticket',ticket_id=t.id) }}"><div><b>{{ t.ticket_no }}</b><strong>{{ t.subject }}</strong><small>{{ t.priority }} · {{ t.created_at|localtime('%d %b %Y %H:%M') }}</small></div><span class="rd-status status-{{ t.status|lower }}">{{ 'Completed / Review' if t.status=='RESOLVED' else t.status.replace('_',' ') }}</span></a>{% else %}<div class="rd-empty">No requests have been submitted.</div>{% endfor %}
+    </article>
+    <article class="rd-card rd-attention"><div class="rd-card-head"><div><h2>Action Required From Me</h2><p>Items that need requester attention</p></div></div>
+      {% if role_metrics.awaiting_requester %}<div class="rd-callout"><strong>{{ role_metrics.awaiting_requester }} request{{ 's' if role_metrics.awaiting_requester != 1 else '' }} awaiting acceptance</strong><span>Open the completed ticket and confirm whether the work is accepted.</span></div>{% else %}<div class="rd-empty">There are no completed requests waiting for your acceptance.</div>{% endif %}
+      <div class="rd-mini-grid"><div><span>OPEN</span><b>{{ role_metrics.my_open }}</b></div><div><span>OVERDUE</span><b>{{ role_metrics.overdue }}</b></div><div><span>CLOSED</span><b>{{ role_metrics.closed }}</b></div></div>
+    </article>
+  </section>
+
+  {% elif dashboard_role == 'IT_TECHNICIAN' %}
+  <section class="rd-kpis">
+    <div class="rd-kpi accent-blue"><span>ASSIGNED TO ME</span><strong>{{ role_metrics.my_assigned }}</strong><small>Open technical work</small></div>
+    <div class="rd-kpi accent-purple"><span>IN PROGRESS</span><strong>{{ role_metrics.in_progress }}</strong><small>Currently working</small></div>
+    <div class="rd-kpi accent-amber"><span>PENDING</span><strong>{{ role_metrics.pending }}</strong><small>Waiting for action</small></div>
+    <div class="rd-kpi accent-red"><span>OVERDUE</span><strong>{{ role_metrics.overdue }}</strong><small>Requires attention</small></div>
+  </section>
+  <section class="rd-grid two">
+    <article class="rd-card"><div class="rd-card-head"><div><h2>My Work Queue</h2><p>Only tickets assigned to your account</p></div><a href="{{ url_for('tickets') }}">Open queue</a></div>
+      {% for t in tickets[:10] %}<a class="rd-ticket" href="{{ url_for('ticket',ticket_id=t.id) }}"><div><b>{{ t.ticket_no }}</b><strong>{{ t.subject }}</strong><small>{{ t.priority }} · {{ t.requester.full_name if t.requester else 'Requester' }}</small></div><span class="rd-status status-{{ t.status|lower }}">{{ 'Completed / Review' if t.status=='RESOLVED' else t.status.replace('_',' ') }}</span></a>{% else %}<div class="rd-empty">No tickets are assigned to you.</div>{% endfor %}</article>
+    <article class="rd-card"><div class="rd-card-head"><div><h2>Technician Workflow</h2><p>Current work-state breakdown</p></div></div>
+      <div class="rd-progress"><div><span>In Progress</span><b>{{ role_metrics.in_progress }}</b></div><i><em style="width:{{ ((role_metrics.in_progress / (role_metrics.my_assigned or 1))*100)|round(0) }}%"></em></i><div><span>Pending</span><b>{{ role_metrics.pending }}</b></div><i><em class="amber" style="width:{{ ((role_metrics.pending / (role_metrics.my_assigned or 1))*100)|round(0) }}%"></em></i><div><span>Completed / Review</span><b>{{ role_metrics.resolved_waiting }}</b></div><i><em class="green" style="width:{{ ((role_metrics.resolved_waiting / (role_metrics.my_assigned or 1))*100)|round(0) }}%"></em></i></div>
+      <div class="rd-callout"><strong>Completion is controlled</strong><span>Use the completion submission form on the assigned ticket. Direct closing is not permitted.</span></div>
+    </article>
+  </section>
+
+  {% elif dashboard_role == 'IT_TEAM_LEADER' %}
+  <section class="rd-kpis">
+    <div class="rd-kpi accent-blue"><span>NEW UNASSIGNED</span><strong>{{ role_metrics.queue_new }}</strong><small>Awaiting assignment</small></div>
+    <div class="rd-kpi accent-purple"><span>ASSIGNED</span><strong>{{ role_metrics.assigned }}</strong><small>Active queue</small></div>
+    <div class="rd-kpi accent-green"><span>AWAITING APPROVAL</span><strong>{{ role_metrics.resolved_waiting }}</strong><small>Completed work to review</small></div>
+    <div class="rd-kpi accent-red"><span>OVERDUE</span><strong>{{ role_metrics.overdue }}</strong><small>Queue attention</small></div>
+  </section>
+  <section class="rd-grid two">
+    <article class="rd-card"><div class="rd-card-head"><div><h2>IT Support Queue</h2><p>Requests requiring assignment or monitoring</p></div><a href="{{ url_for('tickets') }}">Manage queue</a></div>
+      {% for t in tickets[:10] %}<a class="rd-ticket" href="{{ url_for('ticket',ticket_id=t.id) }}"><div><b>{{ t.ticket_no }}</b><strong>{{ t.subject }}</strong><small>{{ t.requester.full_name if t.requester else 'Requester' }} · {{ t.priority }}</small></div><span class="rd-status status-{{ t.status|lower }}">{{ 'Completed / Review' if t.status=='RESOLVED' else t.status.replace('_',' ') }}</span></a>{% else %}<div class="rd-empty">No IT Support requests are visible.</div>{% endfor %}</article>
+    <article class="rd-card"><div class="rd-card-head"><div><h2>Leader Actions</h2><p>Operational controls for the IT Support queue</p></div></div>
+      <div class="rd-action-list"><div><span>NEW / UNASSIGNED</span><b>{{ role_metrics.queue_new }}</b><small>Assign to a technician or yourself</small></div><div><span>AWAITING APPROVAL</span><b>{{ role_metrics.resolved_waiting }}</b><small>Review submitted completion work</small></div><div><span>OVERDUE</span><b>{{ role_metrics.overdue }}</b><small>Prioritize follow-up</small></div></div>
+    </article>
+  </section>
+
+  {% elif dashboard_role == 'IT_MANAGER' %}
+  <section class="rd-kpis">
+    <div class="rd-kpi accent-blue"><span>TOTAL AUTHORIZED</span><strong>{{ total_count }}</strong><small>All visible requests</small></div>
+    <div class="rd-kpi accent-purple"><span>APPROVAL QUEUE</span><strong>{{ role_metrics.approval_queue }}</strong><small>Completion reviews</small></div>
+    <div class="rd-kpi accent-cyan"><span>IN PROGRESS</span><strong>{{ role_metrics.in_progress }}</strong><small>Currently active</small></div>
+    <div class="rd-kpi accent-red"><span>OVERDUE</span><strong>{{ role_metrics.overdue }}</strong><small>Management attention</small></div>
+  </section>
+  <section class="rd-grid two">
+    <article class="rd-card"><div class="rd-card-head"><div><h2>Management Overview</h2><p>All requests within your authorization</p></div><a href="{{ url_for('tickets') }}">View requests</a></div>
+      {% for t in tickets[:10] %}<a class="rd-ticket" href="{{ url_for('ticket',ticket_id=t.id) }}"><div><b>{{ t.ticket_no }}</b><strong>{{ t.subject }}</strong><small>{{ t.requester.full_name if t.requester else 'Requester' }} · {{ t.request_type.replace('_',' ') }}</small></div><span class="rd-status status-{{ t.status|lower }}">{{ 'Completed / Review' if t.status=='RESOLVED' else t.status.replace('_',' ') }}</span></a>{% else %}<div class="rd-empty">No authorized requests.</div>{% endfor %}</article>
+    <article class="rd-card"><div class="rd-card-head"><div><h2>Management Oversight</h2><p>Approval and service-state indicators</p></div></div><div class="rd-oversight"><div><span>NEW</span><b>{{ role_metrics.needs_assignment }}</b></div><div><span>IN PROGRESS</span><b>{{ role_metrics.in_progress }}</b></div><div><span>AWAITING APPROVAL</span><b>{{ role_metrics.approval_queue }}</b></div><div><span>AWAITING REQUESTER</span><b>{{ role_metrics.awaiting_requester }}</b></div><div><span>CLOSED</span><b>{{ role_metrics.closed }}</b></div><div><span>OVERDUE</span><b>{{ role_metrics.overdue }}</b></div></div></article>
+  </section>
+
+  {% elif dashboard_role == 'SYSTEM_ADMINISTRATOR' %}
+  <section class="rd-kpis">
+    <div class="rd-kpi accent-blue"><span>MY SYSTEM REQUESTS</span><strong>{{ role_metrics.my_system_requests }}</strong><small>Assigned to this account</small></div>
+    <div class="rd-kpi accent-purple"><span>IN PROGRESS</span><strong>{{ role_metrics.in_progress }}</strong><small>Active system work</small></div>
+    <div class="rd-kpi accent-green"><span>AWAITING APPROVAL</span><strong>{{ role_metrics.resolved_waiting }}</strong><small>Completion review</small></div>
+    <div class="rd-kpi accent-red"><span>OVERDUE</span><strong>{{ role_metrics.overdue }}</strong><small>Requires attention</small></div>
+  </section>
+  <section class="rd-grid two">
+    <article class="rd-card"><div class="rd-card-head"><div><h2>System Administration Work</h2><p>Only System Admin Support requests assigned to you</p></div></div>
+      {% for t in tickets[:10] %}<a class="rd-ticket" href="{{ url_for('ticket',ticket_id=t.id) }}"><div><b>{{ t.ticket_no }}</b><strong>{{ t.subject }}</strong><small>{{ t.priority }} · {{ t.requester.full_name if t.requester else 'Requester' }}</small></div><span class="rd-status status-{{ t.status|lower }}">{{ 'Completed / Review' if t.status=='RESOLVED' else t.status.replace('_',' ') }}</span></a>{% else %}<div class="rd-empty">No System Admin Support requests are assigned to you.</div>{% endfor %}</article>
+    <article class="rd-card"><div class="rd-card-head"><div><h2>System Work Control</h2><p>Completion and operational status</p></div></div><div class="rd-oversight"><div><span>ASSIGNED</span><b>{{ role_metrics.assigned }}</b></div><div><span>IN PROGRESS</span><b>{{ role_metrics.in_progress }}</b></div><div><span>PENDING</span><b>{{ role_metrics.pending }}</b></div><div><span>REVIEW</span><b>{{ role_metrics.resolved_waiting }}</b></div><div><span>CLOSED</span><b>{{ role_metrics.closed }}</b></div><div><span>OVERDUE</span><b>{{ role_metrics.overdue }}</b></div></div></article>
+  </section>
+  {% endif %}
+
+  <section class="rd-grid three">
+    <article class="rd-card rd-status-card"><div class="rd-card-head"><div><h2>Status Summary</h2><p>Authorized records only</p></div></div><div class="rd-status-grid">{% for s,label in [('NEW','New'),('ASSIGNED','Assigned'),('IN_PROGRESS','In Progress'),('PENDING','Pending'),('RESOLVED','Review'),('CLOSED','Closed')] %}<div><span>{{ label }}</span><b>{{ counts.get(s,0) }}</b></div>{% endfor %}</div></article>
+    <article class="rd-card"><div class="rd-card-head"><div><h2>Priority Mix</h2><p>Current authorized requests</p></div></div><div class="rd-bars">{% for p in ['CRITICAL','HIGH','MEDIUM','LOW'] %}<div><span>{{ p }}</span><i><em style="width:{{ ((priority_counts.get(p,0)/(total_count or 1))*100)|round(0) }}%"></em></i><b>{{ priority_counts.get(p,0) }}</b></div>{% endfor %}</div></article>
+    <article class="rd-card"><div class="rd-card-head"><div><h2>Recent Activity</h2><p>Today · authorized scope</p></div></div><div class="rd-activity">{% for a in activity_feed[:6] %}<div><b>{{ a.activity_type.replace('_',' ') }}</b><span>{{ a.created_at|localtime('%H:%M') }}</span></div>{% else %}<div class="rd-empty">No activity recorded today.</div>{% endfor %}</div></article>
+  </section>
+</div>
+{% endblock %}

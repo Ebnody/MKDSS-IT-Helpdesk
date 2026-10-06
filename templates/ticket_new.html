@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% block content %}
+<div class="page-head"><div><div class="eyebrow">SERVICE REQUEST</div><h1>New support request</h1><p class="muted">Provide clear information so the IT team can respond efficiently.</p></div><a class="secondary btn" href="{{ url_for('tickets') }}">Back to Requests</a></div>
+<section class="panel formpanel wide-form"><div class="panel-title"><div><h2>Request information</h2><p class="muted">Fields marked <span class="required">*</span> are required.</p></div></div>
+<form method="post" class="form"><input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+<div class="form-grid two"><label><span>Request type <b class="required">*</b></span><select name="request_type" required>{% for rt in allowed_types %}<option value="{{ rt }}">{{ request_type_labels[rt] }}</option>{% endfor %}</select><small>{% if current_user.role.name in ('IT_TECHNICIAN','IT_TEAM_LEADER') %}Use System Administration Support when you need help from the System Administrator.{% else %}Select the support function that should receive this request.{% endif %}</small></label>
+<label><span>Priority <b class="required">*</b></span><select name="priority">{% for p in PRIORITIES %}<option value="{{ p }}">{{ p }}</option>{% endfor %}</select></label></div>
+<label><span>Subject <b class="required">*</b></span><input name="subject" maxlength="200" required placeholder="Briefly describe the problem"></label>
+<label><span>Description <b class="required">*</b></span><textarea name="description" rows="8" required placeholder="Describe what happened, when it started, affected equipment/user, and any troubleshooting already performed."></textarea></label>
+<div class="form-grid two"><label><span>Department <b class="required">*</b></span><select name="department_id" required><option value="">Select department</option>{% for d in departments %}<option value="{{ d.id }}" {% if current_user.department_id==d.id %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></label>
+<label><span>Category</span><select name="category_id"><option value="">Not specified</option>{% for c in categories %}<option value="{{ c.id }}" data-request-type="{{ c.request_type }}">{{ c.name }}</option>{% endfor %}</select></label></div>
+<div class="form-footer"><span class="muted">Please verify the details before submitting.</span><div class="actions"><a class="secondary btn" href="{{ url_for('dashboard') }}">Cancel</a><button class="primary" type="submit">Submit request</button></div></div>
+</form></section>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const type=document.querySelector('[name="request_type"]');
+  const cat=document.querySelector('[name="category_id"]');
+  if(!type || !cat) return;
+  function filterCategories(){
+    const value=type.value;
+    Array.from(cat.options).forEach(function(opt){
+      if(!opt.dataset.requestType){ opt.hidden=false; return; }
+      opt.hidden=opt.dataset.requestType!==value;
+      if(opt.hidden && opt.selected) cat.value='';
+    });
+  }
+  type.addEventListener('change', filterCategories);
+  filterCategories();
+});
+</script>
+{% endblock %}

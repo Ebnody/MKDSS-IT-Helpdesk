@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-head">
+    <div>
+        <div class="eyebrow">USER ADMINISTRATION</div>
+        <h1>User accounts</h1>
+        <p class="muted">Create, edit, activate, deactivate, or delete employee and IT team accounts.</p>
+    </div>
+</div>
+
+<section class="panel wide-form">
+    <div class="panel-title">
+        <div>
+            <h2>Create account</h2>
+            <p class="muted">Use a temporary password; the user can be required to change it on first sign-in.</p>
+        </div>
+    </div>
+
+    <form method="post" action="{{ url_for('create_user') }}" class="form">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+        <div class="form-grid two">
+            <label>
+                <span>Full name <b class="required">*</b></span>
+                <input name="full_name" required>
+            </label>
+
+            <label>
+                <span>Employee ID <b class="required">*</b></span>
+                <input name="employee_id" required>
+            </label>
+
+            <label>
+                <span>Username <b class="required">*</b></span>
+                <input name="username" required>
+            </label>
+
+            <label>
+                <span>Work email <b class="required">*</b></span>
+                <input type="email" name="email" required>
+            </label>
+
+            <label>
+                <span>Temporary password <b class="required">*</b></span>
+                <input type="password" name="password" minlength="12" required>
+            </label>
+
+            <label>
+                <span>Role <b class="required">*</b></span>
+                <select name="role">
+                    {% for r in roles %}
+                    <option value="{{ r.name }}">{{ r.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>
+                <span>Department</span>
+                <select name="department_id">
+                    <option value="">Not assigned</option>
+                    {% for d in departments %}
+                    <option value="{{ d.id }}">{{ d.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
+        <div class="form-footer">
+            <span class="muted">All account changes are logged.</span>
+            <button class="primary" type="submit">Create account</button>
+        </div>
+    </form>
+</section>
+
+<section class="panel">
+    <div class="panel-title">
+        <div>
+            <h2>Accounts</h2>
+            <span class="muted">
+                {{ users|length }} account{{ '' if users|length==1 else 's' }}
+            </span>
+        </div>
+    </div>
+
+    <div class="tablewrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Employee ID</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <strong>{{ u.full_name }}</strong><br>
+                        <small class="muted">{{ u.username }}</small>
+                    </td>
+
+                    <td>{{ u.employee_id }}</td>
+
+                    <td>{{ u.role.display_name }}</td>
+
+                    <td>{{ u.department.name if u.department else '—' }}</td>
+
+                    <td>
+                        <span class="status {{ 'status-resolved' if u.is_active else 'status-closed' }}">
+                            {{ 'Active' if u.is_active else 'Inactive' }}
+                        </span>
+                    </td>
+
+                    <td>
+                        <div class="actions">
+
+                            <!-- Edit is available for EVERY account, including the current account -->
+                            <a class="action-btn" href="{{ url_for('edit_user',user_id=u.id) }}">Edit</a>
+
+                            {% if u.id != current_user.id %}
+
+                            <form method="post" action="{{ url_for('toggle_user',user_id=u.id) }}">
+                                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                                <button class="action-btn" type="submit">
+                                    {{ 'Deactivate' if u.is_active else 'Activate' }}
+                                </button>
+                            </form>
+
+                            <form method="post"
+                                  action="{{ url_for('delete_user',user_id=u.id) }}"
+                                  onsubmit="return confirm('Delete this user account? Historical records will be retained as Deleted User.');">
+                                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                                <button class="danger" type="submit">Delete</button>
+                            </form>
+
+                            {% else %}
+
+                            <span class="muted">Current account</span>
+
+                            {% endif %}
+
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% endblock %}
